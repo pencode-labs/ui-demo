@@ -9,7 +9,7 @@ import (
 	"github.com/pencode-labs/pencode/peb"
 )
 
-const menuHTML = `<button data-ref="dialog" type="button" role="menuitem">打开表单弹窗</button><button data-ref="popup" type="button" role="menuitem">打开自由定位浮窗</button><button data-ref="panel" type="button" role="menuitem">打开工作台 Panel</button>`
+const menuHTML = `<button data-ref="dialog" type="button" role="menuitem">打开表单弹窗</button><button data-ref="popup" type="button" role="menuitem">打开自由定位浮窗</button><button data-ref="panel" type="button" role="menuitem">打开工作台 Panel</button><button data-ref="notification" type="button" role="menuitem">显示通知与自定义操作</button><button data-ref="auto-close" type="button" role="menuitem">显示自动关闭通知</button>`
 const formHTML = `<form data-ref="form"><label for="pencode-extension-demo-name">名称</label><input id="pencode-extension-demo-name" data-ref="name" name="name" placeholder="输入名称"><button type="submit">在 Panel 中显示</button></form>`
 const formCSS = `form { display: flex; flex-direction: column; gap: 12px; } input { padding: 8px; } button { padding: 6px 12px; }`
 
@@ -38,7 +38,7 @@ func main() {
 	err := peb.ServeExtension(os.Stdin, os.Stdout, peb.Contributions{Actions: []peb.Action{{ID: "tools", Text: "UI 示例", Tooltip: "扩展菜单、弹窗与 Panel", Location: peb.TitleBarRight}}}, peb.Handlers{
 		ActivateActions: func(_ context.Context, p *peb.ActionPublisher) { publisher = p },
 		Action: func(c peb.ActionContext) error {
-			return publisher.Show(peb.UI{ID: "menu", Title: "UI 示例操作", Anchor: c.ID, Kind: peb.ContextMenu, View: &peb.EditorView{HTML: menuHTML, Events: []peb.EditorBinding{{Ref: "dialog", Kind: "click"}, {Ref: "popup", Kind: "click"}, {Ref: "panel", Kind: "click"}}}})
+			return publisher.Show(peb.UI{ID: "menu", Title: "UI 示例操作", Anchor: c.ID, Kind: peb.ContextMenu, View: &peb.EditorView{HTML: menuHTML, Events: []peb.EditorBinding{{Ref: "dialog", Kind: "click"}, {Ref: "popup", Kind: "click"}, {Ref: "panel", Kind: "click"}, {Ref: "notification", Kind: "click"}, {Ref: "auto-close", Kind: "click"}}}})
 		},
 		UIEvent: func(event peb.UIEvent) error {
 			switch event.Event.Kind {
@@ -66,6 +66,19 @@ func main() {
 			case "click":
 				switch event.ID {
 				case "menu":
+					if event.Event.Ref == "notification" || event.Event.Ref == "auto-close" {
+						if err := publisher.CloseUI("menu"); err != nil {
+							return err
+						}
+						if event.Event.Ref == "auto-close" {
+							return publisher.Show(peb.UI{ID: "temporary", Title: "操作完成", Kind: peb.Notification, AutoCloseMS: 5000, View: &peb.EditorView{HTML: `<p>这条通知将在 5 秒后自动关闭，也可以点击右上角关闭。</p>`}})
+						}
+						return publisher.Show(peb.UI{ID: "notification", Title: "UI 示例", Kind: peb.Notification, View: &peb.EditorView{
+							HTML:   `<p>扩展可以自定义通知内容和操作。此通知会保留到手动关闭。</p><footer><button data-ref="result" type="button">查看结果</button><button data-ref="dismiss" type="button">忽略</button></footer>`,
+							CSS:    `footer { display: flex; justify-content: flex-end; gap: 8px; }`,
+							Events: []peb.EditorBinding{{Ref: "result", Kind: "click"}, {Ref: "dismiss", Kind: "click"}},
+						}})
+					}
 					if event.Event.Ref == "popup" {
 						anchored = false
 						closeOnOutsideClick = false
@@ -82,6 +95,13 @@ func main() {
 						if err := publisher.CloseUI("menu"); err != nil {
 							return err
 						}
+						return panel(event.Context)
+					}
+				case "notification":
+					if err := publisher.CloseUI(event.ID); err != nil {
+						return err
+					}
+					if event.Event.Ref == "result" {
 						return panel(event.Context)
 					}
 				case "floating":

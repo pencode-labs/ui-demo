@@ -3,6 +3,6 @@
   "name": "扩展 UI 示例",
   "version": "0.1.0",
   "publisher": "Pencode",
-  "description": "演示 action 菜单、表单弹窗、底部 Panel 与控件及生命周期事件。",
+  "description": "演示 action 菜单、表单弹窗、底部 Panel、右下角通知、自定义操作与生命周期事件。",
   "entry": "bin/ui-demo"
 }
