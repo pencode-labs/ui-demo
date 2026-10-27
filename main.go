@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html"
 	"os"
@@ -35,7 +36,12 @@ func main() {
 			Events: []peb.EditorBinding{{Ref: "refresh", Kind: "click"}, {Ref: "close", Kind: "click"}},
 		}})
 	}
-	err := peb.ServeExtension(os.Stdin, os.Stdout, peb.Contributions{Actions: []peb.Action{{ID: "tools", Text: "UI 示例", Tooltip: "扩展菜单、弹窗与 Panel", Location: peb.TitleBarRight}}}, peb.Handlers{
+	err := peb.ServeExtension(os.Stdin, os.Stdout, peb.Contributions{Settings: []peb.Setting{{ID: "name", Label: "默认名称", Description: "在结果 Panel 中显示的默认名称。", Default: json.RawMessage(`"Pencode"`)}}, Actions: []peb.Action{{ID: "tools", Text: "UI 示例", Tooltip: "扩展菜单、弹窗与 Panel", Location: peb.TitleBarRight}}}, peb.Handlers{
+		Settings: func(values peb.SettingValues) error {
+			var err error
+			name, err = peb.DecodeSetting[string](values, "name")
+			return err
+		},
 		ActivateActions: func(_ context.Context, p *peb.ActionPublisher) { publisher = p },
 		Action: func(c peb.ActionContext) error {
 			return publisher.Show(peb.UI{ID: "menu", Title: "UI 示例操作", Anchor: c.ID, Kind: peb.ContextMenu, View: &peb.EditorView{HTML: menuHTML, Events: []peb.EditorBinding{{Ref: "dialog", Kind: "click"}, {Ref: "popup", Kind: "click"}, {Ref: "panel", Kind: "click"}, {Ref: "notification", Kind: "click"}, {Ref: "auto-close", Kind: "click"}}}})

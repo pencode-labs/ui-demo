@@ -2,7 +2,7 @@
 
 A Pencode extension demonstrating actions, dialogs, menus, popups, panels, and UI lifecycle events.
 
-Uses the [Pencode](https://github.com/pencode-labs/pencode) peb v6 SDK. Requires Go 1.27.0 or newer.
+Uses the [Pencode](https://github.com/pencode-labs/pencode) peb v10 SDK. Requires Go 1.27.0 or newer.
 
 ## Build and install
 
@@ -15,6 +15,10 @@ go build -o bin/ui-demo .
 In Pencode's extension manager, choose **Install from local directory** and select this checkout. Extensions run on the workspace server, so build and install on that host for remote workspaces.
 
 On Windows, build `bin/ui-demo.exe` and set `entry` in `resources/extension.json` to `bin/ui-demo.exe` before installing.
+
+## Settings
+
+Open **设置 → 扩展 → 扩展 UI 示例** to change the default name displayed in the result panel. Changes are saved on the workspace host and delivered to the running extension.
 
 ## Development
 
