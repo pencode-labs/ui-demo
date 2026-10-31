@@ -3,6 +3,6 @@
   "name": "扩展 UI 示例",
   "version": "0.1.0",
   "publisher": "Pencode",
-  "description": "演示 action 菜单、表单弹窗、底部 Panel、右下角通知、自定义操作与生命周期事件。",
+  "description": "面向扩展开发者的交互示例，演示菜单、对话框、浮窗、面板与通知的使用。包含表单输入、扩展设置和界面生命周期事件，便于了解和验证 Pencode 扩展 UI 能力。",
   "entry": "bin/ui-demo"
 }
