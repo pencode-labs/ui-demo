@@ -4,14 +4,59 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html"
 	"os"
 
+	"github.com/onix-engine/onix/html/markup"
 	"github.com/pencode-labs/pencode/peb"
 )
 
-const menuHTML = `<button data-ref="dialog" type="button" role="menuitem">打开表单弹窗</button><button data-ref="popup" type="button" role="menuitem">打开自由定位浮窗</button><button data-ref="panel" type="button" role="menuitem">打开工作台 Panel</button><button data-ref="notification" type="button" role="menuitem">显示通知与自定义操作</button><button data-ref="auto-close" type="button" role="menuitem">显示自动关闭通知</button>`
-const formHTML = `<form data-ref="form"><label for="pencode-extension-demo-name">名称</label><input id="pencode-extension-demo-name" data-ref="name" name="name" placeholder="输入名称"><button type="submit">在 Panel 中显示</button></form>`
+var menuHTML = func() string {
+	var b markup.Builder
+	b.TextElement("button", "打开表单弹窗", "data-ref", "dialog", "type", "button", "role", "menuitem")
+	b.TextElement("button", "打开自由定位浮窗", "data-ref", "popup", "type", "button", "role", "menuitem")
+	b.TextElement("button", "打开工作台 Panel", "data-ref", "panel", "type", "button", "role", "menuitem")
+	b.TextElement("button", "显示通知与自定义操作", "data-ref", "notification", "type", "button", "role", "menuitem")
+	b.TextElement("button", "显示自动关闭通知", "data-ref", "auto-close", "type", "button", "role", "menuitem")
+	return b.String()
+}()
+var formHTML = func() string {
+	var b markup.Builder
+	b.Open("form", "data-ref", "form")
+	b.TextElement("label", "名称", "for", "pencode-extension-demo-name")
+	b.Element("input", "id", "pencode-extension-demo-name", "data-ref", "name", "name", "name", "placeholder", "输入名称")
+	b.TextElement("button", "在 Panel 中显示", "type", "submit")
+	b.End()
+	return b.String()
+}()
+var temporaryHTML = func() string {
+	var b markup.Builder
+	b.TextElement("p", "这条通知将在 5 秒后自动关闭，也可以点击右上角关闭。")
+	return b.String()
+}()
+
+var notificationHTML = func() string {
+	var b markup.Builder
+	b.TextElement("p", "扩展可以自定义通知内容和操作。此通知会保留到手动关闭。")
+	b.Open("footer")
+	b.TextElement("button", "查看结果", "data-ref", "result", "type", "button")
+	b.TextElement("button", "忽略", "data-ref", "dismiss", "type", "button")
+	b.End()
+	return b.String()
+}()
+
+var popupHTML = func() string {
+	var b markup.Builder
+	b.TextElement("p", "可像扩展市场一样显示丰富内容，同时继续操作工作区。")
+	b.TextElement("label", "搜索", "for", "pencode-extension-demo-query")
+	b.Element("input", "id", "pencode-extension-demo-query", "data-ref", "query", "placeholder", "移动浮窗后保留输入")
+	b.Open("label")
+	b.Element("input", "data-ref", "outside", "type", "checkbox")
+	b.Text("点击外部关闭")
+	b.End()
+	b.TextElement("button", "切换坐标 / action 锚点", "data-ref", "move", "type", "button")
+	return b.String()
+}()
+
 const formCSS = `form { display: flex; flex-direction: column; gap: 12px; } input { padding: 8px; } button { padding: 6px 12px; }`
 
 func main() {
@@ -30,8 +75,12 @@ func main() {
 		if c.Path != "" {
 			label += " · " + c.Path
 		}
+		var b markup.Builder
+		b.TextElement("p", label)
+		b.TextElement("button", "刷新", "data-ref", "refresh", "type", "button")
+		b.TextElement("button", "关闭 Panel", "data-ref", "close", "type", "button")
 		return publisher.Show(peb.UI{ID: "result", Title: "UI 示例", Kind: peb.Panel, Context: c, View: &peb.EditorView{
-			HTML:   `<p>` + html.EscapeString(label) + `</p><button data-ref="refresh" type="button">刷新</button><button data-ref="close" type="button">关闭 Panel</button>`,
+			HTML:   b.String(),
 			CSS:    `button { margin-right: 8px; padding: 6px 12px; }`,
 			Events: []peb.EditorBinding{{Ref: "refresh", Kind: "click"}, {Ref: "close", Kind: "click"}},
 		}})
@@ -77,10 +126,10 @@ func main() {
 							return err
 						}
 						if event.Event.Ref == "auto-close" {
-							return publisher.Show(peb.UI{ID: "temporary", Title: "操作完成", Kind: peb.Notification, AutoCloseMS: 5000, View: &peb.EditorView{HTML: `<p>这条通知将在 5 秒后自动关闭，也可以点击右上角关闭。</p>`}})
+							return publisher.Show(peb.UI{ID: "temporary", Title: "操作完成", Kind: peb.Notification, AutoCloseMS: 5000, View: &peb.EditorView{HTML: temporaryHTML}})
 						}
 						return publisher.Show(peb.UI{ID: "notification", Title: "UI 示例", Kind: peb.Notification, View: &peb.EditorView{
-							HTML:   `<p>扩展可以自定义通知内容和操作。此通知会保留到手动关闭。</p><footer><button data-ref="result" type="button">查看结果</button><button data-ref="dismiss" type="button">忽略</button></footer>`,
+							HTML:   notificationHTML,
 							CSS:    `footer { display: flex; justify-content: flex-end; gap: 8px; }`,
 							Events: []peb.EditorBinding{{Ref: "result", Kind: "click"}, {Ref: "dismiss", Kind: "click"}},
 						}})
@@ -89,7 +138,7 @@ func main() {
 						anchored = false
 						closeOnOutsideClick = false
 						return publisher.Show(peb.UI{ID: "floating", Title: "自由定位浮窗", Kind: peb.Popup, Placement: popupPlacement(), View: &peb.EditorView{
-							HTML:   `<p>可像扩展市场一样显示丰富内容，同时继续操作工作区。</p><label for="pencode-extension-demo-query">搜索</label><input id="pencode-extension-demo-query" data-ref="query" placeholder="移动浮窗后保留输入"><label><input data-ref="outside" type="checkbox">点击外部关闭</label><button data-ref="move" type="button">切换坐标 / action 锚点</button>`,
+							HTML:   popupHTML,
 							CSS:    `input[data-ref="query"] { display: block; width: 100%; padding: 8px; margin: 8px 0 16px; } button { padding: 6px 12px; }`,
 							Events: []peb.EditorBinding{{Ref: "query", Kind: "input"}, {Ref: "outside", Kind: "change"}, {Ref: "move", Kind: "click"}},
 						}})
